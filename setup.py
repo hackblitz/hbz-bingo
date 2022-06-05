@@ -14,7 +14,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",
-    packages=["bingo"],
+    packages=setuptools.find_packages(),
     python_requires=">=3.9",
-    install_requires=["motor=3.0.0", "pydantic=1.9.1"],
+    install_requires=["motor==3.0.0", "pydantic==1.9.1"],
 )

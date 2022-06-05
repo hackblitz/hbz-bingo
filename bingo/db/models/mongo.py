@@ -26,10 +26,10 @@ class MongoModelManager:
         self.model_class = model_class
 
     async def get_collection(self):
-        from bingo.db.mongo import AsyncIOMotorClient, get_database
+        from bingo.db.mongo import AsyncIOMotorClient, get_client, get_database
 
-        connection: AsyncIOMotorClient = await get_database()
-        return connection["questions"][self.model_class.get_collection_name()]
+        client: AsyncIOMotorClient = await get_client()
+        return client[get_database()][self.model_class.get_collection_name()]
 
     async def get(self, **kwargs):
         """

@@ -7,7 +7,7 @@ from bingo.types import Identifier
 from bson import ObjectId
 
 
-def _metaclass_resolver(*classes):
+def __metaclass_resolver__(*classes):
     metaclass = tuple(set(type(cls) for cls in classes))
     metaclass = (
         metaclass[0]
@@ -99,7 +99,7 @@ class MongoModelMeta(object, metaclass=MongoObjectMeta):
     pass
 
 
-class MongoModel(_metaclass_resolver(BaseModel, MongoModelMeta)):
+class MongoModel(__metaclass_resolver__(BaseModel, MongoModelMeta)):
 
     id: Optional[Identifier] = Field(alias="_id")
     last_updated: datetime = Field(default=None, alias="_last_updated")

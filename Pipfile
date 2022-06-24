@@ -9,6 +9,7 @@ pydantic = "==1.9.1"
 
 [dev-packages]
 black = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.9"

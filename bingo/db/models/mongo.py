@@ -4,7 +4,8 @@ from typing import Optional
 from bingo.db.exceptions import IntegrityError
 from bingo.db.fields import Field
 from bingo.db.models import BaseConfig, BaseModel
-from bingo.types import Identifier
+from bingo.typing import Identifier
+from bson import ObjectId
 
 
 def __metaclass_resolver__(*classes):
@@ -19,77 +20,83 @@ def __metaclass_resolver__(*classes):
 
 class MongoModelManager:
     """
-    Model manager class for mongodb. This will be available in the objects attribute in the MongoModel.
+    Model manager class for mongodb.
+    This will be available in the objects attribute in the MongoModel.
     """
 
     def __init__(self, model_class):
         self.model_class = model_class
 
     async def get_collection(self):
+        """
+        Collection on which this model interacts.
+        """
         from bingo.db.mongo import AsyncIOMotorClient, get_client, get_database
 
         client: AsyncIOMotorClient = await get_client()
         return client[get_database()][self.model_class.get_collection_name()]
 
-    async def get(self, **kwargs):
+    async def get(self, **attributes):
         """
-        Find one document from the collection with the given kwargs
+        Gets a document from the collection with attributes.
         """
 
         collection = await self.get_collection()
-        id = kwargs.get("id")
+        id = attributes.get("id")
 
         if id:
-            del kwargs["id"]
-            kwargs["_id"] = Identifier(id)
+            del attributes["id"]
+            attributes["_id"] = Identifier(id)
 
-        obj = await collection.find_one(kwargs)
+        obj = await collection.find_one(attributes)
 
         if obj:
             return self.model_class(**obj)
 
-    async def filter(self, **kwargs):
+    async def filter(self, **attributes):
         """
-        Find multiple documents from the collection with the given kwargs
+        Gets multiple documents from the collection with attributes.
         """
 
         collection = await self.get_collection()
-        objs = collection.find(kwargs)
+        objs = collection.find(attributes)
 
         if objs:
             return [self.model_class(**obj) async for obj in objs]
 
-    async def create(self, **kwargs):
+    async def create(self, **attributes):
         """
-        Create document in the collection with given kwargs
+        Creates a document in the collection.
         """
 
-        obj = self.model_class(**kwargs)
+        obj = self.model_class(**attributes)
 
         if hasattr(self.model_class, "Meta"):
             if hasattr(self.model_class.Meta, "unique_together"):
                 duplicate_kwargs = {}
 
                 for field in self.model_class.Meta.unique_together:
-                    if field in kwargs:
-                        duplicate_kwargs[field] = kwargs[field]
+                    if field in attributes:
+                        duplicate_kwargs[field] = attributes[field]
 
                 if len(duplicate_kwargs) == len(
                     self.model_class.Meta.unique_together
                 ) and await self.get(**duplicate_kwargs):
-                    raise IntegrityError(
-                        f"Duplicate element found with identifier {str(duplicate_kwargs)}"
-                    )
+                    raise IntegrityError(duplicate_kwargs)
             elif hasattr(self.model_class.Meta, "unique"):
                 if await self.get(
                     **{
-                        self.model_class.Meta.unique: kwargs[
+                        self.model_class.Meta.unique: attributes[
                             self.model_class.Meta.unique
                         ]
                     }
                 ):
                     raise IntegrityError(
-                        f"Duplicate element found with identifier {str({self.model_class.Meta.unique: kwargs[self.model_class.Meta.unique]})}"
+                        {
+                            self.model_class.Meta.unique: attributes[
+                                self.model_class.Meta.unique
+                            ]
+                        }
                     )
 
         collection = await self.get_collection()
@@ -103,13 +110,13 @@ class MongoModelManager:
         if new_obj:
             return str(new_obj.inserted_id)
 
-    async def count(self, **kwargs):
+    async def count(self, **attributes):
         """
-        Number of documents in the collection with the given kwargs
+        Total number of objects in a collection based on attributes.
         """
 
         collection = await self.get_collection()
-        return await collection.count_documents(kwargs)
+        return await collection.count_documents(attributes)
 
 
 class MongoObjectMeta(type):
@@ -132,8 +139,6 @@ class MongoModel(__metaclass_resolver__(BaseModel, MongoModelMeta)):
     last_updated: datetime = Field(default=None, alias="_last_updated")
 
     class Config(BaseConfig):
-        from bson import ObjectId
-
         allow_population_by_alias = True
         json_encoders = {
             datetime: lambda dt: dt.replace(tzinfo=timezone.utc)
@@ -144,9 +149,9 @@ class MongoModel(__metaclass_resolver__(BaseModel, MongoModelMeta)):
         }
 
     @classmethod
-    def get_collection_name(cls):
+    def get_collection_name(cls) -> str:
         """
-        Collection on which the model with query upon
+        Collection name on which this model interacts.
         """
 
         return f"{cls.__name__.lower()}s"

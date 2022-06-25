@@ -10,7 +10,7 @@ setuptools.setup(
     version="0.0.1",
     author="Satheesh Kumar",
     author_email="mail@satheesh.dev",
-    description="Python package that contain common modules that are shared between packages and services",
+    description="Python package contains common modules that are shared between packages and services",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="MIT",

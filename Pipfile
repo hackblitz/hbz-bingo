@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+boto3 = "==1.24.17"
 motor = "==3.0.0"
 pydantic = "==1.9.1"
 

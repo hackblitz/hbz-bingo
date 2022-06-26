@@ -16,5 +16,5 @@ setuptools.setup(
     license="MIT",
     packages=setuptools.find_packages(),
     python_requires=">=3.9",
-    install_requires=["motor==3.0.0", "pydantic==1.9.1"],
+    install_requires=["boto3==1.24.17", "motor==3.0.0", "pydantic==1.9.1"],
 )

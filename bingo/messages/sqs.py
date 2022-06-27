@@ -144,13 +144,16 @@ class SQSQueue(metaclass=SQSMeta):
             )
 
             try:
-                logger.debug(f"Message: {str(message)}")
                 cls.message_handler(json.loads(message["Body"]))
-            except Exception:
+            except Exception as exception:
+                try:
+                    cls.error_handler(exception)
+                except:
+                    pass
+
                 cls.__client__.send_message(
                     QueueUrl=cls.__dlq_url__, MessageBody=message["Body"]
                 )
-                raise
 
     @classmethod
     def poll(cls) -> None:
@@ -164,10 +167,16 @@ class SQSQueue(metaclass=SQSMeta):
             except KeyboardInterrupt:
                 logger.info(f"Stopping poll from {cls.__name__} to queue {cls.name}")
                 break
-            except NotImplementedError:
-                raise
-            except Exception as e:
-                logger.error(e)
+            except Exception as exception:
+                cls.error_handler(exception)
+
+    @classmethod
+    def error_handler(cls, exception: Exception) -> None:
+        """
+        Handles the errors when processing the received message.
+        """
+
+        logging.error(exception)
 
     @classmethod
     def message_handler(cls, message: Dict) -> None:
@@ -181,6 +190,7 @@ class SQSQueue(metaclass=SQSMeta):
         Raises:
             NotImplementedError -> if the method is not present in the acutal class
         """
+
         raise NotImplementedError(
             f"Message handler not implemented. Received message {str(message)}."
         )
